@@ -1,0 +1,226 @@
+{
+  "schema": "demo-content-pack/1",
+  "id": "intent-console-lab",
+  "title": "AI Intents Console Lab",
+  "version": "0.1.0",
+  "demo": {
+    "id": "intent-console-lab",
+    "name": "AI Intents Console Lab",
+    "catalog": "D130",
+    "baseUrl": "http://localhost:7825",
+    "doctor": "/api/health",
+    "tags": [
+      "pingone-privilege",
+      "ai-agent-security",
+      "ai-intents",
+      "agent-governance",
+      "mock-only"
+    ]
+  },
+  "glossary": [
+    {
+      "id": "ai-intent",
+      "term": "AI Intent",
+      "definition": "A named purpose for an agent action, with example phrases (exemplars), a similarity floor, and twin intents it must be told apart from. Shapes from the Privilege console swagger (imodelAIIntent*); the lab's resolution engine over them is lab-invented.",
+      "aliases": [
+        "intent"
+      ]
+    },
+    {
+      "id": "twin-intents",
+      "term": "Twin intents",
+      "definition": "Two intents declared as confusable (Spec.Twins on both). The lab denies an action that lands over both floors within 0.05 of each other rather than guessing.",
+      "aliases": [
+        "twins"
+      ]
+    },
+    {
+      "id": "similarity-floor",
+      "term": "Floor",
+      "definition": "Spec.Floor: the minimum encoder similarity for an action to match an intent. Each intent carries its own.",
+      "aliases": [
+        "threshold"
+      ]
+    },
+    {
+      "id": "fail-closed",
+      "term": "Fail-closed",
+      "definition": "Encoder.FailClosed on: when no intent matches, deny. Off (fail-open): allow with \"no intent matched\" — shown in the lab as a bad default for a payments app.",
+      "aliases": [
+        "fail-open"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "console-swagger",
+      "title": "PingOne Privilege console swagger (imodelAIIntent*, modelAIIntent*)",
+      "url": "https://console-swagger.invalid",
+      "kind": "product-doc",
+      "use": "The Spec/Status and per-app config shapes this lab simulates, measured on the console swagger 2026-11-18 (host not named here per the family safety rule).",
+      "status": "read",
+      "checked": "2026-11-18"
+    },
+    {
+      "id": "kserve",
+      "title": "KServe v2 inference protocol (Triton wire)",
+      "url": "https://kserve.github.io/website/",
+      "kind": "standard",
+      "use": "The encoder sidecar wire shape; the lab's model is a stand-in.",
+      "status": "not-read",
+      "checked": "2026-11-18"
+    }
+  ],
+  "cards": [
+    {
+      "id": "try-acts-allow",
+      "label": "Scenario 1: A matched acting intent allows",
+      "description": "An action whose text lands over the intent's Floor on an Acts=true intent is allowed, bound to that intent.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#try-acts-allow"
+      },
+      "terms": [
+        "ai-intent"
+      ],
+      "story": "S01"
+    },
+    {
+      "id": "try-readonly-deny",
+      "label": "Scenario 2: A read-only intent refuses a write-shaped action",
+      "description": "check-balance is Acts=false. The lab reads that as \"describes, does not authorize\": an action matched only by it is denied as read-only.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#try-readonly-deny"
+      },
+      "terms": [
+        "ai-intent"
+      ],
+      "story": "S02"
+    },
+    {
+      "id": "try-twins-ambiguous",
+      "label": "Scenario 3: Twin intents within a hair are ambiguous",
+      "description": "transfer-funds and pay-beneficiary are declared twins. An action that lands over both floors with less than 0.05 between them is refused rather than guessed — money must not move on a coin flip.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#try-twins-ambiguous"
+      },
+      "terms": [
+        "twin-intents"
+      ],
+      "story": "S03"
+    },
+    {
+      "id": "try-floor-deny",
+      "label": "Scenario 4: Below the floor nothing matches",
+      "description": "An action that does not resemble any exemplar scores under every Floor. Fail-closed (the default) denies; fail-open would allow with \"no intent matched\".",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#try-floor-deny"
+      },
+      "terms": [
+        "similarity-floor"
+      ],
+      "story": "S04"
+    },
+    {
+      "id": "try-none-selected",
+      "label": "Scenario 5: An app that selects no intents has no intent resolution",
+      "description": "Empty IntentIDs means NO intents can match — the lab reads it as \"this app has no intent policy\", so fail-closed denies everything. There is no \"empty means all\".",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#try-none-selected"
+      },
+      "terms": [
+        "fail-closed"
+      ],
+      "story": "S05"
+    },
+    {
+      "id": "try-failopen",
+      "label": "Scenario 6: Fail-open lets unmatched text through",
+      "description": "With Encoder.FailClosed=false, an action under every floor is allowed with \"no intent matched\" — the lab shows why fail-open on a payments app is a bad default.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#try-failopen"
+      },
+      "terms": [
+        "fail-closed"
+      ],
+      "story": "S06"
+    },
+    {
+      "id": "concept-intents",
+      "label": "Define intents",
+      "description": "Exemplars, twins, floor and Acts on the console-shaped form.",
+      "group": "concept",
+      "action": {
+        "type": "route",
+        "href": "/#intents"
+      },
+      "terms": [
+        "ai-intent"
+      ]
+    },
+    {
+      "id": "concept-encoder",
+      "label": "The encoder sidecar",
+      "description": "The KServe v2 wire with a hashed-trigram stand-in model.",
+      "group": "concept",
+      "action": {
+        "type": "route",
+        "href": "/#encoder"
+      },
+      "terms": []
+    },
+    {
+      "id": "ref-doctor",
+      "label": "Doctor and health",
+      "description": "Preflight checks and the demo-health/1 endpoint.",
+      "group": "setup",
+      "action": {
+        "type": "route",
+        "href": "/api/health"
+      }
+    }
+  ],
+  "stories": [
+    {
+      "id": "S01",
+      "title": "A matched acting intent allows",
+      "say": "An action whose text lands over the intent's Floor on an Acts=true intent is allowed, bound to that intent."
+    },
+    {
+      "id": "S02",
+      "title": "A read-only intent refuses a write-shaped action",
+      "say": "check-balance is Acts=false. The lab reads that as \"describes, does not authorize\": an action matched only by it is denied as read-only."
+    },
+    {
+      "id": "S03",
+      "title": "Twin intents within a hair are ambiguous",
+      "say": "transfer-funds and pay-beneficiary are declared twins. An action that lands over both floors with less than 0.05 between them is refused rather than guessed — money must not move on a coin flip."
+    },
+    {
+      "id": "S04",
+      "title": "Below the floor nothing matches",
+      "say": "An action that does not resemble any exemplar scores under every Floor. Fail-closed (the default) denies; fail-open would allow with \"no intent matched\"."
+    },
+    {
+      "id": "S05",
+      "title": "An app that selects no intents has no intent resolution",
+      "say": "Empty IntentIDs means NO intents can match — the lab reads it as \"this app has no intent policy\", so fail-closed denies everything. There is no \"empty means all\"."
+    },
+    {
+      "id": "S06",
+      "title": "Fail-open lets unmatched text through",
+      "say": "With Encoder.FailClosed=false, an action under every floor is allowed with \"no intent matched\" — the lab shows why fail-open on a payments app is a bad default."
+    }
+  ]
+}

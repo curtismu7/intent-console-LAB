@@ -1,0 +1,27 @@
+{
+  "demos": [
+    {
+      "id": "intent-console-lab",
+      "name": "AI Intents Console Lab",
+      "kind": "Demo",
+      "description": "The Privilege console's AI Intents page as a standalone: define intents with exemplars, twins, floors and Acts, point an app at them (modelAIIntentConfig), and resolve agent actions through an encoder sidecar on the KServe v2 wire. Shapes measured from the console swagger; the resolution engine is lab-invented and labelled.",
+      "url": "http://localhost:7825",
+      "healthPath": "/api/health",
+      "composeFile": "intent-console-lab/docker-compose.yml",
+      "composeOverlays": [],
+      "pingProducts": [],
+      "notes": "Host-run: ./scripts/run.sh (port 7825). Mock needs no tenant and no credentials. Docker: HOST_PORT=7825 docker compose up --build -d (published on 127.0.0.1 only). No live mode: the lab contacts no console and no remote encoder. Encoder is a hashed-trigram stand-in; every product-behaviour claim is labelled UNVERIFIED.",
+      "repo": "https://github.com/curtismu7/intent-console-LAB",
+      "catalogId": "D130",
+      "alsoCatalogIds": [],
+      "tags": [
+        "pingone-privilege",
+        "ai-agent-security",
+        "ai-intents",
+        "agent-governance",
+        "simulated"
+      ],
+      "where": "installed"
+    }
+  ]
+}

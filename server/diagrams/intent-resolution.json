@@ -1,0 +1,47 @@
+{
+  "schema": "diagram-studio/1",
+  "id": "intent-resolution",
+  "title": "One agent action through AI Intents",
+  "lede": "An action's text is embedded by the encoder sidecar, scored against the app's selected intents, filtered by each intent's Floor, checked against twin intents, and allowed or denied by the matched intent's Acts flag. The lab's own reading of each step is on the trail.",
+  "groups": {
+    "agent": { "label": "The agent and its action", "color": "dark" },
+    "app": { "label": "The application's intent config", "color": "blue" },
+    "engine": { "label": "The lab resolution engine", "color": "green" },
+    "encoder": { "label": "The encoder sidecar", "color": "amber" },
+    "decision": { "label": "The decision", "color": "red" }
+  },
+  "nodes": [
+    { "id": "action", "label": "Agent action (text)", "group": "agent", "x": 80, "y": 200, "sub": ["e.g. move 200 dollars from checking to savings"] },
+    { "id": "config", "label": "modelAIIntentConfig", "group": "app", "x": 80, "y": 360, "sub": ["IntentIDs: which intents apply", "Encoder: URL, TimeoutMS, FailClosed"] },
+    { "id": "select", "label": "Scope to selected intents", "group": "engine", "x": 300, "y": 280, "sub": ["empty IntentIDs = no intent resolution"] },
+    { "id": "embed", "label": "Encoder: text to vector", "group": "encoder", "x": 300, "y": 120, "sub": ["KServe v2 wire", "lab stand-in: hashed trigrams"] },
+    { "id": "score", "label": "Score vs exemplars", "group": "engine", "x": 520, "y": 200, "sub": ["best cosine over the exemplars"] },
+    { "id": "floor", "label": "Each intent's Floor", "group": "engine", "x": 520, "y": 360, "sub": ["under the floor = out"] },
+    { "id": "twins", "label": "Twin disambiguation", "group": "engine", "x": 720, "y": 280, "sub": ["two twins within 0.05 = ambiguous"] },
+    { "id": "acts", "label": "Acts on the matched intent", "group": "engine", "x": 720, "y": 440, "sub": ["true = authorizes", "false = describes only"] },
+    { "id": "allow", "label": "Allow", "group": "decision", "x": 930, "y": 240 },
+    { "id": "deny", "label": "Deny", "group": "decision", "x": 930, "y": 420 }
+  ],
+  "edges": [
+    { "source": "action", "target": "select", "label": "in scope?" },
+    { "source": "config", "target": "select", "label": "IntentIDs" },
+    { "source": "select", "target": "embed", "label": "action text" },
+    { "source": "embed", "target": "score", "label": "384-dim vector" },
+    { "source": "score", "target": "floor", "label": "scores" },
+    { "source": "floor", "target": "twins", "label": "survivors" },
+    { "source": "twins", "target": "acts", "label": "one winner" },
+    { "source": "twins", "target": "deny", "label": "ambiguous twins", "dashed": true },
+    { "source": "acts", "target": "allow", "label": "Acts=true" },
+    { "source": "acts", "target": "deny", "label": "Acts=false", "dashed": true },
+    { "source": "floor", "target": "deny", "label": "all under floor, fail-closed", "dashed": true }
+  ],
+  "steps": [
+    { "title": "The action arrives", "what": "The agent's action is text: 'move 200 dollars from checking to savings'. It carries no intent label of its own — the purpose must be resolved.", "edges": [0] },
+    { "title": "The app scopes the intents", "what": "modelAIIntentConfig lists which intents apply to this app. An app that selects none has no intent resolution at all: the lab denies it fail-closed.", "edges": [1, 2] },
+    { "title": "The encoder embeds the text", "what": "The sidecar turns the text into a 384-dimension vector over the KServe v2 wire. The lab's model is a hashed character-trigram stand-in, not a trained encoder.", "edges": [3] },
+    { "title": "Score against exemplars", "what": "The vector is compared with every exemplar of every in-scope intent; the best cosine similarity is the intent's score.", "edges": [4] },
+    { "title": "Each Floor filters its own intent", "what": "A score under an intent's Spec.Floor takes that intent out. What floor the real product applies and how is UNVERIFIED — the lab's rule is stated on the trail.", "edges": [5, 10] },
+    { "title": "Twins are told apart", "what": "If the top two survivors are declared twins of each other and sit within 0.05, the lab refuses rather than guesses: money must not move on a coin flip.", "edges": [6, 7] },
+    { "title": "Acts decides the last step", "what": "The matched intent's Spec.Acts is the lab's stand-in for 'this intent authorizes action'. False (a describing intent like check-balance) denies a write-shaped action.", "edges": [8, 9] }
+  ]
+}
