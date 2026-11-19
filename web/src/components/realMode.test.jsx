@@ -47,6 +47,34 @@ function stubFetch({ infoBody = info(), modeStatus = 200, resolveBody = mockResu
 beforeEach(() => { window.location.hash = ""; });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
+describe("Story landing tab (UI-RELAYOUT-PATTERN)", () => {
+  it("renders numbered sections in narrative order with the pattern classes", async () => {
+    stubFetch();
+    render(<App />);
+    await screen.findByTestId("banner");
+    const story = screen.getByTestId("tab-story");
+    expect(story).toHaveClass("story");
+    const nums = [...story.querySelectorAll(".step-num")].map((el) => el.textContent);
+    expect(nums).toEqual(["1", "2", "3"]);
+    const headings = [...story.querySelectorAll(":scope > .panel > h2")].map((h) => h.textContent);
+    expect(headings[0]).toContain("Define intents");
+    expect(headings[1]).toContain("Resolve one action");
+    expect(headings[2]).toContain("The encoder");
+    // aria-hidden digits keep the accessible heading text clean
+    expect(screen.getByRole("heading", { name: "Resolve one action" })).toBeInTheDocument();
+  });
+
+  it("the Facts tab pairs Facts and Scenarios in a .duo", async () => {
+    const user = userEvent.setup();
+    stubFetch();
+    render(<App />);
+    await screen.findByTestId("banner");
+    await user.click(screen.getByRole("link", { name: "Facts & Talk" }));
+    expect(screen.getByTestId("tab-facts").querySelector(".duo")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Facts — what is measured, what is not" })).toBeInTheDocument();
+  });
+});
+
 describe("mode switch reloads all data (rule 19)", () => {
   it("POST /api/mode, then reloads /api/info, /api/intents and /api/app-config", async () => {
     const user = userEvent.setup();
@@ -94,7 +122,6 @@ describe("real-mode resolve result", () => {
     stubFetch({ resolveBody: { ...realResult, ...over } });
     render(<App />);
     await screen.findByTestId("banner");
-    await user.click(screen.getByRole("link", { name: "Resolve" }));
     await user.click(screen.getByTestId("resolve-run"));
     await screen.findByTestId("resolve-result");
   }

@@ -24,7 +24,7 @@ code { font-family: var(--font-mono); font-size: var(--font-size-2xs); }
 .shell-bar .shell-right { margin-left: auto; } /* TopMenu renders .top-menu.shell-right; its own layout stays */
 @media (max-width: 600px) { .shell-bar { gap: 10px; padding: 10px 16px; } .shell-nav { order: 3; flex-basis: 100%; flex-wrap: wrap; } }
 /* Page frame (section 3): one centred 1100px column; the simulation banner is its first child. */
-.page { max-width: 2200px; margin: 0 auto; padding: 4px 0 32px; }
+.page { max-width: 1600px; margin: 0 auto; padding: 4px 0 32px; }
 .page-head { margin: 12px 0; }
 .intro { margin: 0; max-width: 70ch; color: var(--th-text-muted); font-size: var(--font-size-sm); line-height: 1.45; }
 .chip { padding: 3px 10px; border-radius: var(--radius-pill); border: 1px solid var(--status-info); color: var(--status-info); background: var(--th-bg-card); font-size: var(--font-size-2xs); }
@@ -136,3 +136,17 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--accent-deep
 .chip-real, .chip-observed { border-color: var(--status-warn); color: var(--status-warn); }
 .chip-deny { border-color: var(--danger-text); color: var(--danger-text); }
 .real-detail { margin: 8px 0; padding: 8px 12px; border-left: 4px solid var(--status-warn); background: var(--th-bg-inset); font-size: var(--font-size-sm); }
+
+/* Story tab: vertical numbered flow (UI-RELAYOUT-PATTERN.md), not an auto-fit mosaic. */
+.story { display: flex; flex-direction: column; gap: 14px; }
+.story > .panel { min-width: 0; }
+/* Numbered step badge next to panel headings. */
+.step-num { display: inline-grid; place-items: center; min-width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent-gradient); color: var(--on-accent); font: 700 var(--font-size-2xs) var(--font-mono);
+  margin-right: 8px; vertical-align: 2px; }
+/* Paired supporting panels (facts + scenarios) share one row; stack when narrow. */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 900px) { .duo { grid-template-columns: 1fr; } }
+/* Resolve hops: 2-col card grid instead of a single-column list. */
+.hops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+@media (max-width: 900px) { .hops-grid { grid-template-columns: 1fr; } }

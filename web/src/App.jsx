@@ -12,15 +12,13 @@ import VerifyMark from "./components/VerifyMark.jsx";
 import { workspaceId } from "./workspace";
 
 const TABS = [
-  { id: "intents", label: "Intents" },
-  { id: "resolve", label: "Resolve" },
-  { id: "encoder", label: "Encoder" },
+  { id: "story", label: "Story" },
   { id: "diagram", label: "Diagram" },
   { id: "facts", label: "Facts & Talk" },
 ];
 
 export default function App() {
-  const [tab, setTab] = useState("intents");
+  const [tab, setTab] = useState("story");
   const [story, setStory] = useState(null);
   const [info, setInfo] = useState(null);
   const [intents, setIntents] = useState([]);
@@ -127,23 +125,31 @@ export default function App() {
         <Banner story={story} mode={info?.mode} />
         <p className="keys">Workspace {workspaceId()} · everything simulated · no tenant, no outbound network</p>
         {error && <p className="field-error" data-testid="app-error" role="alert">{error}</p>}
-        {tab === "intents" && (
-          <section data-testid="tab-intents">
-            {editing && <IntentForm initial={editing === "new" ? null : intents.find((i) => i.ObjectMeta.Name === editing)} onSave={saveIntent} onCancel={() => setEditing(null)} />}
-            {!editing && <p className="actions"><button onClick={() => setEditing("new")} data-testid="new-intent">New intent</button></p>}
-            <IntentTable intents={intents} selected={config.IntentIDs ?? []} onToggle={(name) => {
-              const next = (config.IntentIDs ?? []).includes(name) ? config.IntentIDs.filter((n) => n !== name) : [...(config.IntentIDs ?? []), name];
-              saveConfig({ ...config, IntentIDs: next });
-            }} onEdit={setEditing} onDelete={deleteIntent} revalidate={revalidate} />
-          </section>
+        {tab === "story" && (
+          <div className="story" data-testid="tab-story">
+            <section className="panel" aria-labelledby="story-intents-h">
+              <h2 id="story-intents-h"><span className="step-num" aria-hidden="true">1</span>Define intents</h2>
+              {editing && <IntentForm initial={editing === "new" ? null : intents.find((i) => i.ObjectMeta.Name === editing)} onSave={saveIntent} onCancel={() => setEditing(null)} />}
+              {!editing && <p className="actions"><button onClick={() => setEditing("new")} data-testid="new-intent">New intent</button></p>}
+              <IntentTable intents={intents} selected={config.IntentIDs ?? []} onToggle={(name) => {
+                const next = (config.IntentIDs ?? []).includes(name) ? config.IntentIDs.filter((n) => n !== name) : [...(config.IntentIDs ?? []), name];
+                saveConfig({ ...config, IntentIDs: next });
+              }} onEdit={setEditing} onDelete={deleteIntent} revalidate={revalidate} />
+            </section>
+            <section className="panel" aria-labelledby="story-resolve-h">
+              <h2 id="story-resolve-h"><span className="step-num" aria-hidden="true">2</span>Resolve one action</h2>
+              <Resolver intents={intents} config={config} onConfigChange={saveConfig} />
+            </section>
+            <section className="panel" aria-labelledby="story-encoder-h">
+              <h2 id="story-encoder-h"><span className="step-num" aria-hidden="true">3</span>The encoder</h2>
+              <EncoderProbe />
+            </section>
+          </div>
         )}
-        {tab === "resolve" && (
-          <section data-testid="tab-resolve"><Resolver intents={intents} config={config} onConfigChange={saveConfig} /></section>
-        )}
-        {tab === "encoder" && <section data-testid="tab-encoder"><EncoderProbe /></section>}
         {tab === "diagram" && <DiagramTab vertical="retail" resetSignal={resetSignal} />}
         {tab === "facts" && (
           <section data-testid="tab-facts">
+            <div className="duo">
             <div className="panel">
               <h2>Facts — what is measured, what is not</h2>
               <ul className="facts">
@@ -159,6 +165,7 @@ export default function App() {
               <ol className="facts">
                 {story.scenarios.map((sc) => <li key={sc.id}><strong>{sc.title}.</strong> {sc.lesson}</li>)}
               </ol>
+            </div>
             </div>
             {talkOpen && <div className="panel"><h2>Talk track</h2><TalkTrack talk={story.talkTrack.map((t, i) => ({ ...t, id: i }))} /></div>}
           </section>
