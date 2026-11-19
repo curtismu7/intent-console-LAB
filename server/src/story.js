@@ -4,7 +4,7 @@
 export const TITLE = 'AI Intents Console Lab';
 export const INTRO = 'The PingOne Privilege console lets an admin define AI Intents: named purposes with example phrases, threshold floors and twin intents it must be told apart from. An application that selects intents gets each agent action matched against them through an encoder sidecar. This lab rebuilds that page as a simulation: the shapes come from the console API (measured), the resolution engine is ours, and every product behaviour we could not test is labelled UNVERIFIED.';
 export const BANNER = 'SIMULATION: the intent table, encoder and diagram are mock/stand-in (a hashed character-trigram vector, not a trained model) and the mock engine is lab-invented. In Real mode the decision comes from the tenant\'s live AI Gateway; everything else stays simulated. For education.';
-export const REAL_BANNER = 'REAL MODE: this lab reads no live system in real mode — the console API and the encoder it points at are not contacted. Real mode here only means the settings form is live against this lab\'s own loopback state. Everything on the page is still a simulation.';
+export const REAL_BANNER = 'REAL MODE: each Resolve probe is sent to the tenant\'s live AI Gateway and the verdict shown is the gateway\'s own (allow, agent refusal, AI Guard block). The console API and the encoder are still simulated: the intent table, the encoder probe and the diagram do not contact anything.';
 
 export const PRODUCTS = [
   { id: 'intents', name: 'AI Intents', blurb: 'Named intents with exemplars, twins, floors' },
