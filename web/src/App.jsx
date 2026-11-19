@@ -86,8 +86,13 @@ export default function App() {
 
   const setMode = async (source) => {
     const r = await fetch("/api/mode", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ source }) });
-    if (r.ok) setInfo((i) => ({ ...i, mode: source, source }));
-    return r.ok;
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      setError(j.detail || j.error || `HTTP ${r.status}`);
+      return false;
+    }
+    await loadAll();
+    return true;
   };
 
   if (error && !story) return <p className="app-error">The lab could not start: {error}</p>;
@@ -121,6 +126,7 @@ export default function App() {
       <main className="page">
         <Banner story={story} mode={info?.mode} />
         <p className="keys">Workspace {workspaceId()} · everything simulated · no tenant, no outbound network</p>
+        {error && <p className="field-error" data-testid="app-error" role="alert">{error}</p>}
         {tab === "intents" && (
           <section data-testid="tab-intents">
             {editing && <IntentForm initial={editing === "new" ? null : intents.find((i) => i.ObjectMeta.Name === editing)} onSave={saveIntent} onCancel={() => setEditing(null)} />}

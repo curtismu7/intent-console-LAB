@@ -17,6 +17,8 @@ import { resolveAction } from './resolver.js';
 import { validateAppConfig, defaultAppConfig } from './appConfig.js';
 import { modelInfo, infer } from './encoder.js';
 import { createWorkspaces, workspaceFrom } from './workspaces.js';
+import { newTrace, formatTraceparent } from './trace.js';
+import { aiGatewayConfig, realNotConfiguredReason, sendToAiGateway } from './real.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = process.env.WEB_DIST || path.resolve(HERE, '../../web/dist');
@@ -24,7 +26,7 @@ const CONFIG = process.env.CUSTOMER_CONFIG || path.resolve(HERE, '../../customer
 
 export function createApp({
   health = createHealth(), configFile = CONFIG, env = process.env, now = Date.now,
-  workspaces = createWorkspaces({ now }),
+  workspaces = createWorkspaces({ now }), fetchFn = fetch,
 } = {}) {
   const app = express();
   app.disable('x-powered-by');
@@ -123,7 +125,7 @@ export function createApp({
   }));
 
   // ---- Resolution probe ----
-  api.post('/resolve', withWorkspace((ws, req, res) => {
+  api.post('/resolve', withWorkspace(async (ws, req, res) => {
     const text = req.body?.action;
     if (typeof text !== 'string' || !text.trim()) return res.status(400).json({ error: 'bad_action', detail: 'body.action must be a non-empty string' });
     if (text.length > 2000) return res.status(400).json({ error: 'bad_action', detail: 'action text is capped at 2000 characters' });
@@ -137,6 +139,28 @@ export function createApp({
       const v = validateAppConfig({ ...config, Encoder: { ...config.Encoder, FailClosed: req.body.failClosed === true } });
       if (v.error) return fail(res, v);
       config = v.value;
+    }
+    if (mode === 'real') {
+      const cfg = aiGatewayConfig(env);
+      if (!cfg.configured) return res.status(409).json({ error: 'real_not_configured', detail: realNotConfiguredReason() });
+      const trace = newTrace(req.headers.traceparent);
+      let sent;
+      try {
+        sent = await sendToAiGateway({ action: text, cfg, traceparent: formatTraceparent(trace.traceId, trace.span()), fetchFn });
+      } catch (e) {
+        return res.status(502).json({ error: 'gateway_unreachable', message: `the live AI Gateway could not be reached: ${e?.cause?.code || e?.code || e?.name || 'error'}` });
+      }
+      const m = sent.mapped;
+      if (!m) return res.status(502).json({ error: 'gateway_unmapped', message: 'the live AI Gateway answered in a shape this lab does not map' });
+      const labProjection = resolveAction({ text, intents: storeOf(ws).store, config, now });
+      workspaces.record(ws, { action: 'resolve-real', decision: m.decision });
+      return res.json({
+        decision: m.decision, matched: null, reason: m.reasonCode, decidedBy: m.decidedBy,
+        ...(m.detail ? { detail: m.detail } : {}), at: new Date(now()).toISOString(), action: text,
+        hops: realResolveHops(trace, m),
+        workspace: ws, config, source: 'real',
+        localProjection: { label: 'the lab\'s own engine projection (what our resolver would have said) — it does not influence the real verdict', decision: labProjection.decision, matched: labProjection.matched, scores: labProjection.scores },
+      });
     }
     const r = resolveAction({ text, intents: storeOf(ws).store, config, now });
     workspaces.record(ws, { action: 'resolve', decision: r.decision, matched: r.matched });
@@ -173,6 +197,20 @@ export function createApp({
     app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(WEB_DIST, 'index.html')));
   }
   return app;
+}
+
+// The two hops of a real resolve. The lab→gateway hop shows the Bearer header with the token value
+// replaced: the bearer is write-only and never appears in any response. Both decisions are observed
+// (read from the gateway's answer), never presented as the lab's own checks.
+function realResolveHops(trace, mapped) {
+  const a = trace.span(); const b = trace.span();
+  const tp = (id) => formatTraceparent(trace.traceId, id);
+  return [
+    { n: 1, from: 'browser', to: 'lab', label: 'The page asks the lab to resolve the action', traceparent: tp(a),
+      request: 'POST /api/resolve\ntraceparent: ' + tp(a), response: 'received; forwarding to the live AI Gateway (Real mode)' },
+    { n: 2, from: 'lab', to: 'ai-gateway', label: 'The lab posts the action to the live AI Gateway (A2A message/send, write-only bearer — value never shown)', traceparent: tp(b),
+      request: 'POST <aigateway>/jsonrpc\nauthorization: Bearer ***\ntraceparent: ' + tp(b) + '\n\n{ "method": "message/send", ... }', response: `decision: ${mapped.decision} (observed), ${mapped.reasonCode}, decided by ${mapped.decidedBy}` },
+  ];
 }
 
 export function startHttpServer({ port, host, app = createApp() } = {}) {

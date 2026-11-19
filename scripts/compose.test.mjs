@@ -54,17 +54,28 @@ test('the container is locked down: read-only fs, no capabilities, no new privil
   assert.match(compose, /no-new-privileges:true/);
 });
 
-test('start mode: compose replaces the image MODE=mock with INTC_MODE, empty when unset; Real needs INTC_MODE_REAL=1', async () => {
+test('start mode: compose replaces the image MODE=mock with INTC_MODE, empty when unset; Real follows the gateway config', async () => {
   const compose = here('docker-compose.yml');
   const lab = new RegExp('^  intent-console-lab:\\n((?:    .*\\n|\\n)+)', 'm').exec(compose)?.[1] ?? '';
   assert.ok(lab, 'the lab service exists');
   assert.match(lab, /^      MODE: \$\{INTC_MODE:-\}$/m, 'MODE comes from INTC_MODE with an empty default');
   assert.match(lab, /^      INTC_MODE_REAL: \$\{INTC_MODE_REAL:-\}$/m);
   assert.match(here('Dockerfile'), /^ENV .*\bMODE=mock\b/m, 'the image default stays mock (rule 19) for a plain docker run');
-  const { modeFrom } = await import('../server/src/config.js');
-  assert.equal(modeFrom({ MODE: '' }), 'mock', 'no opt-in: Mock');
-  assert.equal(modeFrom({ MODE: '', INTC_MODE_REAL: '1' }), 'real', 'opt-in: Real');
-  assert.equal(modeFrom({ MODE: 'mock', INTC_MODE_REAL: '1' }), 'mock');
+  const { modeFrom, realAvailableFrom } = await import('../server/src/config.js');
+  // modeFrom consults realAvailableFrom, which reads the shared settings file for the gateway keys; a bare env object
+  // without STANDALONE_ENV sees the developer's real file, so these checks stub it to an empty fixture.
+  const os = await import('node:os'); const fs = await import('node:fs'); const path = await import('node:path');
+  const fixture = path.join(os.tmpdir(), `intc-compose-test-${Date.now()}.env`);
+  fs.writeFileSync(fixture, '# empty fixture\n');
+  const env = { MODE: '', STANDALONE_ENV: fixture };
+  try {
+    assert.equal(modeFrom(env), 'mock', 'unconfigured: Mock');
+    assert.equal(modeFrom({ ...env, INTC_MODE_REAL: '1' }), 'real', 'the legacy opt-in alone still enables Real (documented fallback)');
+    assert.equal(realAvailableFrom(env), false, 'unconfigured: Real unavailable');
+    fs.writeFileSync(fixture, 'INTC_AIGATEWAY_URL=http://127.0.0.1:1/a2a\nINTC_AIGATEWAY_BEARER=stub\n');
+    assert.equal(modeFrom(env), 'real', 'configured: Real');
+    assert.equal(modeFrom({ ...env, MODE: 'mock' }), 'mock');
+  } finally { fs.rmSync(fixture, { force: true }); }
 });
 
 test('LAB_ALLOWED_HOSTS and SHELF_URL pass through with safe defaults', () => {

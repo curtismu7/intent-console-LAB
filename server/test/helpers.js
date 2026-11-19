@@ -2,11 +2,13 @@ import http from 'node:http';
 import { createApp, startHttpServer } from '../src/app.js';
 import { createHealth } from '../src/health.js';
 
-// env: the settings the app sees (never process.env, so a developer's real OBS_LOKI_URL cannot leak into a test).
-export async function withServer(fn, { configFile = '/nonexistent/customer.config.json', env = {}, now } = {}) {
+// env: the settings the app sees (never process.env, so a developer's real shared settings file cannot
+// leak into a test: STANDALONE_ENV defaults to a path that does not exist).
+export async function withServer(fn, { configFile = '/nonexistent/customer.config.json', env = {}, now, fetchFn } = {}) {
+  const fullEnv = { STANDALONE_ENV: '/nonexistent/shared-settings.env', ...env };
   const health = createHealth({ intervalMs: 3_600_000 });
   await health.ready;
-  const { server, url } = await startHttpServer({ port: 0, host: '127.0.0.1', app: createApp({ health, configFile, env, ...(now ? { now } : {}) }) });
+  const { server, url } = await startHttpServer({ port: 0, host: '127.0.0.1', app: createApp({ health, configFile, env: fullEnv, fetchFn, ...(now ? { now } : {}) }) });
   try { await fn(url.replace(/\/$/, '')); } finally { health.stop(); await new Promise((r) => server.close(r)); }
 }
 

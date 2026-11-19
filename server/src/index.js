@@ -4,10 +4,11 @@ import { startHttpServer, createApp } from './app.js';
 import { allPassed, runChecks } from './doctor.js';
 import { assertBindAllowed, bindHost, resolvePort } from './safety.js';
 import { modeFrom } from './config.js';
-
-installNetguard(); // before anything else can open a socket
+import { netguardAllowlist } from './real.js';
 
 try { process.loadEnvFile(fileURLToPath(new URL('../../.env', import.meta.url))); } catch { /* no .env */ }
+
+installNetguard(netguardAllowlist()); // the Real gateway hostname is the ONE allowed outbound; everything else is refused
 
 const checks = await runChecks();
 if (!allPassed(checks)) {
@@ -17,5 +18,5 @@ if (!allPassed(checks)) {
 console.log(`[intent-console-lab] starting in ${modeFrom()} mode`);
 const host = assertBindAllowed(bindHost(), process.env);
 const { url } = await startHttpServer({ port: resolvePort(), host, app: createApp() });
-console.log(`[intent-console-lab] lab at ${url} (loopback, simulation only — no outbound network)`);
+console.log(`[intent-console-lab] lab at ${url} (loopback${modeFrom() === 'real' ? `, real AI Gateway host: ${netguardAllowlist().join(', ') || 'none'}` : ', no outbound network except the allowlisted gateway host'})`);
 console.log(`[intent-console-lab] health: ${url}api/health`);

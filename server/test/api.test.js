@@ -22,7 +22,7 @@ test('GET /api/info: mock by default, simulated always true, real disabled with 
     assert.equal(j.source, 'mock');
     assert.equal(j.simulated, true);
     assert.equal(j.realAvailable, false);
-    assert.match(j.realHint, /no live mode/);
+    assert.match(j.realHint, /Real mode is not configured/);
   });
 });
 
@@ -33,7 +33,7 @@ test('POST /api/mode: exact body only, 409 with the reason when real is not enab
     const real = await post(url, '/api/mode', { source: 'real' });
     assert.equal(real.status, 409);
     const rb = await real.json();
-    assert.match(rb.detail, /no live mode/);
+    assert.match(rb.detail, /Real mode is not configured/);
     const ok = await post(url, '/api/mode', { source: 'mock' });
     assert.equal(ok.status, 200);
   });

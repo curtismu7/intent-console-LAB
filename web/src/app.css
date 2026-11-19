@@ -130,3 +130,9 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--accent-deep
 .search-group > h2 { font-size: var(--font-size-lg); margin: 0 0 4px; }
 .search code[data-testid="kql"] { overflow-wrap: anywhere; white-space: pre-wrap; }
 .search input[type="text"] { min-width: 0; flex: 1 1 12ch; }
+
+/* Real mode: the gateway's banner edge, the observed hop chip and the quoted gateway detail use the warning tokens so real never looks like the lab's own mock trail. */
+.banner-real { border-left-color: var(--status-warn); }
+.chip-real, .chip-observed { border-color: var(--status-warn); color: var(--status-warn); }
+.chip-deny { border-color: var(--danger-text); color: var(--danger-text); }
+.real-detail { margin: 8px 0; padding: 8px 12px; border-left: 4px solid var(--status-warn); background: var(--th-bg-inset); font-size: var(--font-size-sm); }

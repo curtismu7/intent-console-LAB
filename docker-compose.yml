@@ -12,10 +12,16 @@ services:
       INTC_BIND: 0.0.0.0
       SHELF_URL: ${SHELF_URL:-http://127.0.0.1:4400}
       LAB_ALLOWED_HOSTS: ${LAB_ALLOWED_HOSTS:-intent-console-lab.local.ping-devops.com}
-      # Start mode. Mock is the default and the only fully-offline mode. INTC_MODE_REAL=1 (owner's .env)
-      # enables the rule-19 Real switch; this lab contacts no live system in either mode.
+      # Start mode. Mock is the default. Real follows the gateway keys (shared settings file, env_file below);
+      # INTC_MODE_REAL=1 alone still enables the Real switch as a legacy fallback.
       MODE: ${INTC_MODE:-}
       INTC_MODE_REAL: ${INTC_MODE_REAL:-}
+    # Real mode needs the owner-set AI Gateway endpoint + bearer. The shared settings file is mounted via
+    # env_file (values become container env; the server reads them from there, never from a browser value).
+    # The bearer is write-only: never returned by any API, never logged.
+    env_file:
+      - path: ${STANDALONE_ENV:-/Users/cmuir/Development/.env}
+        required: false
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]

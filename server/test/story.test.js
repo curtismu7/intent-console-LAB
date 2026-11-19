@@ -33,7 +33,7 @@ test('every scenario names a runnable action with an expect the harness can chec
 test('the banner and intro say what is simulated', () => {
   const s = buildStory(DEFAULT_CAST);
   assert.match(s.banner, /SIMULATION/);
-  assert.match(s.banner, /no outbound network/i);
+  assert.match(s.banner, /Real mode the decision comes from the tenant's live AI Gateway/);
   assert.match(s.tokenLabel, /MOCK/);
   assert.ok(s.products.length >= 4);
 });

@@ -72,11 +72,19 @@ export default function Resolver({ intents, config, onConfigChange }) {
       {error && <p className="error" data-testid="resolve-error">{error}</p>}
       {result && (
         <div className="card" data-testid="resolve-result">
+          <p>
+            <span className={`chip ${result.source === "real" ? "chip-real" : "chip-ok"}`} data-testid="resolve-source">{result.source ?? "mock"}</span>
+          </p>
           <p className={`decision decision-${result.decision}`} data-testid="resolve-decision">
             {result.decision.toUpperCase()}
             {result.matched && <> — intent <strong>{result.matched}</strong></>}
             {" "}({result.reason})
+            {result.source === "real" && result.decidedBy && <> — decided by <strong data-testid="resolve-decided-by">{result.decidedBy}</strong></>}
+            {result.source === "real" && result.reasonCode && <> · <code data-testid="resolve-reason-code">{result.reasonCode}</code></>}
           </p>
+          {result.source === "real" && result.detail && (
+            <blockquote className="real-detail" data-testid="resolve-detail">{result.detail}</blockquote>
+          )}
           {result.scores && (
             <table className="score-table" data-testid="resolve-scores">
               <thead><tr><th>Intent</th><th>Score</th><th>Floor</th><th>Over?</th></tr></thead>
@@ -89,11 +97,37 @@ export default function Resolver({ intents, config, onConfigChange }) {
               </tbody>
             </table>
           )}
+          {result.source === "real" && result.localProjection && (
+            <div className="panel" data-testid="resolve-projection">
+              <h4>What this lab's own engine would have said (projection, not the decision)</h4>
+              <p className={`decision decision-${result.localProjection.decision}`} data-testid="resolve-projection-decision">
+                {String(result.localProjection.decision).toUpperCase()}
+                {result.localProjection.matched && <> — intent <strong>{result.localProjection.matched}</strong></>}
+              </p>
+              {result.localProjection.scores && (
+                <table className="score-table" data-testid="resolve-projection-scores">
+                  <thead><tr><th>Intent</th><th>Score</th><th>Floor</th><th>Over?</th></tr></thead>
+                  <tbody>
+                    {result.localProjection.scores.map((s) => (
+                      <tr key={s.name} className={s.score >= s.floor ? "over" : "under"}>
+                        <td>{s.name}</td><td>{s.score.toFixed(3)}</td><td>{s.floor}</td><td>{s.score >= s.floor ? "yes" : "no"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
           <ol className="hop-list" data-testid="resolve-hops">
             {result.hops.map((h) => (
               <li key={h.n}>
                 <strong>{h.from} → {h.to}</strong>: {h.label}
-                {h.decision && h.decision !== "-" && <span className={`chip ${h.decision.startsWith("deny") ? "chip-deny" : "chip-ok"}`}>{h.decision}</span>}
+                {h.decision && h.decision !== "-" && (
+                  <span
+                    className={`chip ${h.source === "real" ? "chip-observed" : h.decision.startsWith("deny") ? "chip-deny" : "chip-ok"}`}
+                    data-testid={`hop-decision-${h.n}`}
+                  >{h.decision}{h.source === "real" ? " (observed)" : ""}</span>
+                )}
               </li>
             ))}
           </ol>
@@ -101,7 +135,9 @@ export default function Resolver({ intents, config, onConfigChange }) {
             <summary>Raw result (JSON)</summary>
             <Json value={result} hot={["decision", "matched", "reason"]} />
           </details>
-          <p className="small muted">Every step's reading is this lab's own: how the product weighs Floors, Twins, Acts and FailClosed is UNVERIFIED. The trail states what the lab did, not what the product does.</p>
+          {result.source !== "real" && (
+            <p className="small muted">Every step's reading is this lab's own: how the product weighs Floors, Twins, Acts and FailClosed is UNVERIFIED. The trail states what the lab did, not what the product does.</p>
+          )}
         </div>
       )}
     </div>

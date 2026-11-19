@@ -5,6 +5,7 @@ import { netguardSelfTest } from './netguard.js';
 import { DEFAULT_CAST, VERTICALS, unfilled } from './cast.js';
 import { buildStory, rawStory } from './story.js';
 import { modeFrom, realAvailableFrom } from './config.js';
+import { aiGatewayConfig } from './real.js';
 import { createIntentStore, seedIntents, validateIntent } from './intents.js';
 import { resolveAction } from './resolver.js';
 import { SCENARIOS } from './story.js';
@@ -80,7 +81,9 @@ export async function runChecks({ env = process.env, cast = DEFAULT_CAST } = {})
   const ng = await netguardSelfTest();
   add('netguard', ng.ok ? 'pass' : 'fail', ng.ok ? `blocked fetch, socket, socket-by-IP, dns lookup, dns resolve and udp to a non-loopback host (${ng.blocked}/6)` : ng.detail);
 
-  add('tenant', 'pass', 'mock needs no tenant or credentials and makes no outbound network call; this lab has no live mode');
+  add('tenant', 'pass', 'mock needs no tenant or credentials and makes no outbound network call; Real reads the live AI Gateway (one host on the netguard allowlist, write-only bearer — the token is never shown or logged)');
+  const gw = aiGatewayConfig(env);
+  add('real-config', 'info', gw.configured ? `Real mode is available (AI Gateway configured; endpoint host is kept out of this report on purpose)` : realAvailableFrom(env) ? 'INTC_MODE_REAL=1 is set but no AI Gateway URL + bearer is configured: Real falls back to lab-local state' : 'Real mode is not configured: set the AI Gateway URL and bearer in the shared settings file to enable it');
   return checks;
 }
 

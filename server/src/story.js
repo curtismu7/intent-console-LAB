@@ -3,7 +3,7 @@
 // on any fact with no status, and on any scenario that does not teach what it says it teaches.
 export const TITLE = 'AI Intents Console Lab';
 export const INTRO = 'The PingOne Privilege console lets an admin define AI Intents: named purposes with example phrases, threshold floors and twin intents it must be told apart from. An application that selects intents gets each agent action matched against them through an encoder sidecar. This lab rebuilds that page as a simulation: the shapes come from the console API (measured), the resolution engine is ours, and every product behaviour we could not test is labelled UNVERIFIED.';
-export const BANNER = 'SIMULATION: mock intents, a stand-in encoder (a hashed character-trigram vector, not a trained model) and a lab-invented decision engine. No tenant, no outbound network. For education.';
+export const BANNER = 'SIMULATION: the intent table, encoder and diagram are mock/stand-in (a hashed character-trigram vector, not a trained model) and the mock engine is lab-invented. In Real mode the decision comes from the tenant\'s live AI Gateway; everything else stays simulated. For education.';
 export const REAL_BANNER = 'REAL MODE: this lab reads no live system in real mode — the console API and the encoder it points at are not contacted. Real mode here only means the settings form is live against this lab\'s own loopback state. Everything on the page is still a simulation.';
 
 export const PRODUCTS = [
