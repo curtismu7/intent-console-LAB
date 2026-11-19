@@ -5,7 +5,7 @@ Repo: https://github.com/curtismu7/intent-console-LAB
 
 The PingOne Privilege console has an **AI Intents** page: an admin names a purpose for an agent action, gives example phrases, sets a similarity floor, declares twin intents it must be told apart from, and marks whether the intent authorizes an action. Applications then select intents, and every agent action is matched against them through an encoder sidecar. This lab rebuilds that page as a simulation.
 
-Catalog id **D130** (provisional; the owner confirmed the lab 2026-11-18).
+Catalog id **D134** (next free in the registry, 2026-11-18; D130 belongs to pf-privilege-obo-lab).
 
 ## What is measured and what is simulated
 

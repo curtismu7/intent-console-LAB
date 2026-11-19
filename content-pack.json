@@ -6,7 +6,7 @@
   "demo": {
     "id": "intent-console-lab",
     "name": "AI Intents Console Lab",
-    "catalog": "D130",
+    "catalog": "D134",
     "baseUrl": "http://localhost:7825",
     "doctor": "/api/health",
     "tags": [

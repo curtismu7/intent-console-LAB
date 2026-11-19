@@ -21,7 +21,7 @@ export function buildPack() {
     id: 'intent-console-lab',
     title: 'AI Intents Console Lab',
     version,
-    demo: { id: 'intent-console-lab', name: 'AI Intents Console Lab', catalog: 'D130', baseUrl: 'http://localhost:7825', doctor: '/api/health', tags: ['pingone-privilege', 'ai-agent-security', 'ai-intents', 'agent-governance', 'mock-only'] },
+    demo: { id: 'intent-console-lab', name: 'AI Intents Console Lab', catalog: 'D134', baseUrl: 'http://localhost:7825', doctor: '/api/health', tags: ['pingone-privilege', 'ai-agent-security', 'ai-intents', 'agent-governance', 'mock-only'] },
     glossary: [
       { id: 'ai-intent', term: 'AI Intent', definition: 'A named purpose for an agent action, with example phrases (exemplars), a similarity floor, and twin intents it must be told apart from. Shapes from the Privilege console swagger (imodelAIIntent*); the lab\'s resolution engine over them is lab-invented.', aliases: ['intent'] },
       { id: 'twin-intents', term: 'Twin intents', definition: 'Two intents declared as confusable (Spec.Twins on both). The lab denies an action that lands over both floors within 0.05 of each other rather than guessing.', aliases: ['twins'] },

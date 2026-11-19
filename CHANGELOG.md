@@ -9,4 +9,4 @@
 - Per-workspace state (rule 13): intents, app config and decisions are per `X-Workspace`; Reset restores the three seed intents.
 - Diagram: one action from text to decision, diagram-studio/1 data (rule 17), ReactFlow with Simulate, Reset and speed control.
 - Content pack (Learning Hub `demo-content-pack/1`) built from the same story data the UI reads.
-- Port 7825 (one port, from the shelf allocator, 2026-11-18). Catalog id D130 (provisional).
+- Port 7825 (one port, from the shelf allocator, 2026-11-18). Catalog id D134.

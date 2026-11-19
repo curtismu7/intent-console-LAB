@@ -12,7 +12,7 @@
       "pingProducts": [],
       "notes": "Host-run: ./scripts/run.sh (port 7825). Mock needs no tenant and no credentials. Docker: HOST_PORT=7825 docker compose up --build -d (published on 127.0.0.1 only). No live mode: the lab contacts no console and no remote encoder. Encoder is a hashed-trigram stand-in; every product-behaviour claim is labelled UNVERIFIED.",
       "repo": "https://github.com/curtismu7/intent-console-LAB",
-      "catalogId": "D130",
+      "catalogId": "D134",
       "alsoCatalogIds": [],
       "tags": [
         "pingone-privilege",
