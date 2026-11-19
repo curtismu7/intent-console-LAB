@@ -1,0 +1,148 @@
+# KServe-v2 intent encoder: proxies the real nomic-embed-text-v1.5 llama.cpp server
+# (svc/embeddings, ns ping-devops-cmuir:8080) behind KServe-v2 endpoints for the
+# agentless-mcpgw aiintent registry. See INTENT-ENCODER-TENANT-SETUP.md.
+# The python source below is ConfigMap-managed; code also saved as intent-encoder-kserve-proxy.py.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intent-encoder
+  namespace: ping-devops-curtismuir
+  labels:
+    app: intent-encoder
+    managed-by: intent-console-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: intent-encoder
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: '2026-11-19T07:19:16-06:00'
+      labels:
+        app: intent-encoder
+        managed-by: intent-console-lab
+    spec:
+      containers:
+      - command:
+        - python
+        - /srv/encoder.py
+        image: python:3.12-alpine
+        imagePullPolicy: IfNotPresent
+        name: encoder
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /v2/health/ready
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /srv
+          name: code
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: intent-encoder-shim
+        name: code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intent-encoder
+  namespace: ping-devops-curtismuir
+  labels:
+    app: intent-encoder
+    managed-by: intent-console-lab
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: intent-encoder
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: intent-encoder-shim
+  namespace: ping-devops-curtismuir
+  labels:
+    app: intent-encoder
+    managed-by: intent-console-lab
+data:
+  encoder.py: "# KServe-v2-shaped intent encoder proxying a REAL embedding model:\
+    \ nomic-embed-text-v1.5\n# served by llama.cpp at http://embeddings.ping-devops-cmuir.svc.cluster.local:8080\
+    \ (OpenAI /v1/embeddings, 768 dims, mean pooling).\n# Endpoints: GET /v2, /v2/info,\
+    \ /v2/models/intent-encoder(+ /model_info, /get_worker_address),\n# POST /v2/models/intent-encoder/infer.\n\
+    import json, urllib.request\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\n\
+    \nDIMS = 768\nMODEL = 'intent-encoder'\nUPSTREAM = 'http://embeddings.ping-devops-cmuir.svc.cluster.local:8080/v1/embeddings'\n\
+    \ndef embed(texts):\n    body = json.dumps({'input': texts, 'model': 'nomic-embed-text-v1.5'}).encode()\n\
+    \    req = urllib.request.Request(UPSTREAM, data=body, headers={'content-type':\
+    \ 'application/json'})\n    with urllib.request.urlopen(req, timeout=30) as r:\n\
+    \        d = json.loads(r.read())\n    return [row['embedding'] for row in d['data']]\n\
+    \nMODEL_INFO = {\n    'name': MODEL, 'versions': ['1'], 'platform': 'kserve-proxy-nomic',\n\
+    \    'inputs': [{'name': 'TEXT', 'datatype': 'BYTES', 'shape': [-1]}],\n    'outputs':\
+    \ [{'name': 'EMBEDDING', 'datatype': 'FP32', 'shape': [-1, DIMS]}],\n}\nSERVER_INFO\
+    \ = {'name': 'triton-inference-server', 'version': '2.44.0', 'extensions': []}\n\
+    \nclass H(BaseHTTPRequestHandler):\n    def log_message(self, *a): pass\n    def\
+    \ _send(self, code, obj):\n        b = json.dumps(obj).encode()\n        self.send_response(code)\n\
+    \        self.send_header('content-type', 'application/json')\n        self.send_header('content-length',\
+    \ str(len(b)))\n        self.end_headers()\n        self.wfile.write(b)\n    def\
+    \ do_GET(self):\n        p = self.path.split('?')[0].rstrip('/')\n        if p\
+    \ in ('/v2', '/v2/info'): return self._send(200, SERVER_INFO)\n        if p in\
+    \ ('/v2/models/intent-encoder', '/v2/models/intent-encoder/model_info'): return\
+    \ self._send(200, MODEL_INFO)\n        if p in ('/v2/models/intent-encoder/get_worker_address',\
+    \ '/v2/models/intent-encoder/versions/1/get_worker_address'):\n            return\
+    \ self._send(200, {'address': 'localhost:8000'})\n        if p in ('/v2/health/ready',\
+    \ '/v2/models/intent-encoder/ready'): return self._send(200, {'ready': True})\n\
+    \        return self._send(404, {'error': 'Not Found'})\n    def do_POST(self):\n\
+    \        p = self.path.split('?')[0].rstrip('/')\n        if not p.endswith('/infer'):\n\
+    \            return self._send(404, {'error': 'Not Found'})\n        try:\n  \
+    \          n = int(self.headers.get('content-length', 0))\n            body =\
+    \ json.loads(self.rfile.read(n) or b'{}')\n        except Exception:\n       \
+    \     return self._send(400, {'error': 'bad json'})\n        rows = []\n     \
+    \   for inp in (body.get('inputs') or []):\n            for d in (inp.get('data')\
+    \ or []):\n                if isinstance(d, str) and len(d) <= 2000: rows.append(d)\n\
+    \        if not rows or len(rows) > 8:\n            return self._send(400, {'error':\
+    \ 'no usable TEXT inputs'})\n        try:\n            out = embed(rows)\n   \
+    \     except Exception as e:\n            return self._send(502, {'error': 'upstream:\
+    \ %s' % e})\n        return self._send(200, {\n            'model_name': MODEL,\
+    \ 'model_version': '1',\n            'outputs': [{'name': 'EMBEDDING', 'datatype':\
+    \ 'FP32', 'shape': [len(rows), DIMS], 'data': [x for row in out for x in row]}],\n\
+    \        })\n\nHTTPServer(('0.0.0.0', 8000), H).serve_forever()\n"
