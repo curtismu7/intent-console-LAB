@@ -32,29 +32,47 @@ State as of 2026-11-19. Everything here is on the SE cluster (context `us`), nam
 - 3 AIIntents created and Valid with 0 warnings: `transfer-funds`, `pay-beneficiary`,
   `check-balance` (namespace `default`)
 
-## Known blocker (Ping-side, needs SE/DevOps)
+## Known blocker (Ping-side, needs SE/DevOps) — UPDATED 2026-11-20
 
-The agentless-mcpgw gateways (`agentless-mcpgw`, `agentless-mcpgw3` in
-`ping-devops-curtismuir`) still probe the OLD dead URL
-`http://local.ping-devops.com:8597/v2` (config hash `c061ebd06f2b35098a0426469bd17b8c`)
-even after:
+**What we established across 2026-11-19/20:**
 
-- the TenantProfile PUT is confirmed in the console store (rev 70, new URL)
-- re-PUTs and a no-op re-PUT (all 200)
-- full restarts of both gateways (fresh startup sync, 33 frontend nodes created)
-- 30+ minutes of propagation time per attempt
+1. **The encoder side is done.** The Triton `intent-encoder` model (384 dims, KServe-v2,
+   `/v2/models/intent-encoder/infer`) runs healthy; two reachable deployments exist:
+   - on the owner's Mac: Docker `intent-encoder-triton` (127.0.0.1:8597, resolves via
+     the Mac's `/etc/hosts` entry for `local.ping-devops.com`)
+   - in-cluster: `svc/intent-encoder` (and `intent-encoder-8597`) in
+     `ping-devops-curtismuir` — verified serving real nomic embeddings from the
+     gateway's namespace.
+2. **The console UI config is done.** Via the console UI (not the API — the explorer
+   key lost its grant when the local gateway session cycled): intents
+   `transfer_funds`, `pay_beneficiary`, `check_balance` recreated and **Valid**; the
+   `opensearch` app's Intent tab selects exactly these 3 with encoder URL
+   `http://intent-encoder.ping-devops-curtismuir.svc.cluster.local:8000/v2` and **saved
+   through the console's own UI write path**.
+3. **The projected gateway nodes never receive the AIIntentConfig.** On the enrolled
+   gateway fleet (`agentless-mcpgw*` in `ping-devops-cmuir`, the set shown on the
+   console Nodes page as `ai-demo-cmuir`), a fresh pod's startup sync includes the
+   `http-opensearch` frontend nodes (13 log lines) but **zero** `AIIntent` traces —
+   the cloud→node projection strips the AIIntentConfig. Therefore the aiintent
+   registry never initializes, never probes any encoder, and intent signals stay
+   unavailable regardless of what the console holds.
+4. Earlier red herrings, resolved: the `Tenant not found ... Retrying` storm in
+   `tenant_profile.wtch.go` predates this work (back to 2026-10-10) and the cluster
+   gateways don't consume TenantProfiles at all; the stale `8597` probes came from a
+   since-deleted gateway deployment in `ping-devops-curtismuir`; the curtismuir
+   gateway deployments were removed overnight 11-19/20.
+5. Also broken independently: `bxaigateway.pingidentity.cloud:8623` (the EC2 gateway
+   the labs' Real mode calls) refuses connections since 2026-11-20 ~15:00Z.
 
-Both gateways log a storm of `Error creating the tenantprofile ... Tenant not found:
-0428ba4f-... Retrying` from
-`controller/model/imodel/generated/watcher/tenant_profile.wtch.go` during startup.
-The registry evaluates the aiintent config once, ~15–20 min after pod start
-(gateway3: started 13:23Z, evaluated 13:40:09Z, read the stale profile).
-The replicated store the gateways read does not reflect the console's TenantProfile.
+**Question for Ping:** why does the cloud→enrolled-node projection not carry the
+application's `McpAppConfig.AIIntentConfig` (encoder URL, IntentIDs, FailClosed)?
+The console shows it saved; a freshly started, fully synced gateway node shows no
+trace of it. Without that field reaching the node, the aiintent registry cannot
+start. (Node builds: `v1.261112-NYLb`, `v1.261120`; log: `/var/log/procyon/cyonproxy.log`.)
 
-**Question for Ping:** is `Tenant not found ... Retrying` in
-`tenant_profile.wtch.go` known-benign, or is TenantProfile replication broken for
-this tenant? Once the gateway store refreshes, custom-intent matching goes live with
-no further changes — the encoder and all tenant objects are already correct.
+**How to verify once fixed** — a freshly restarted enrolled gateway should log an
+aiintent evaluation line (`... has a deterministic tier for N intent(s)` and/or a
+probe of the encoder URL) within ~20 min of start.
 
 ## How to verify once unblocked
 
