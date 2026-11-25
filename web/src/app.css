@@ -150,3 +150,10 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--accent-deep
 /* Resolve hops: 2-col card grid instead of a single-column list. */
 .hops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
 @media (max-width: 900px) { .hops-grid { grid-template-columns: 1fr; } }
+
+/* Phone: wide tables scroll inside their panel instead of pushing the page sideways. */
+@media (max-width: 600px) {
+  .panel > .table-scroll, .panel > table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 0; }
+  .intent-table { max-width: 100%; }
+}
