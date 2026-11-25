@@ -151,9 +151,10 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--accent-deep
 .hops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
 @media (max-width: 900px) { .hops-grid { grid-template-columns: 1fr; } }
 
-/* Phone: wide tables scroll inside their panel instead of pushing the page sideways. */
+/* Phone: wide tables scroll inside their panel instead of pushing the page sideways.
+   The intents table sits in an unsized wrapper div; give .story .panel overflow so
+   any wide child scrolls in place rather than widening the page. */
 @media (max-width: 600px) {
-  .panel > .table-scroll, .panel > table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 0; }
-  .intent-table { max-width: 100%; }
+  .story .panel, .panel > div { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { max-width: 100%; }
 }
